@@ -13,30 +13,8 @@ export type DataType =
   | 'finish'
 export interface Data {
   type: DataType
-  data?: {
-    name?: string
-    password?: string
-    error?: boolean
-    errorText?: string
-    wins?: number
-    indexRoom?: number | string
-    idGame?: number | string
-    idPlayer?: number | string
-    roomUsers?: User[]
-    gameId?: number | string
-    ships?: Ship[]
-    indexPlayer?: number | string
-    currentPlayerIndex?: number | string
-    x: number
-    y: number
-    winPlayer: number | string
-  }
+  data?: string
   id: number
-}
-
-export interface User {
-  name: string
-  index: number | string
 }
 
 export interface Ship {

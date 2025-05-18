@@ -16,7 +16,7 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const parsed = JSON.parse(message.toString())
-      handleMessage(ws, parsed)
+      handleMessage(ws, parsed, wss)
     } catch (e) {
       console.error('Invalid JSON received', e)
     }

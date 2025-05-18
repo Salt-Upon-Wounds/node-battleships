@@ -1,4 +1,5 @@
 import { httpServer } from './http_server'
+import './ws/ws'
 
 const HTTP_PORT = 8181
 
