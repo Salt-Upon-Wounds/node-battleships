@@ -5,6 +5,7 @@ export const state = {
   users: new Map<string, StateUser>(),
   winners: new Map<string, number>(),
   globalId: 0,
+  globalRoomId: 0,
 }
 
 export interface StateRoom {

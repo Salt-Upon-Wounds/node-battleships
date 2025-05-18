@@ -12,3 +12,15 @@ export function broadcast(wss: WebSocketServer, msg: string) {
 export function getPlayerBySocket(ws: WebSocket) {
   return Array.from(state.users.values()).find((p) => p.ws === ws)
 }
+
+export function sendRoomList(wss: WebSocketServer) {
+  const rooms = JSON.stringify(
+    Array.from(state.rooms.values()).map((room) => ({
+      roomId: room.id,
+      roomUsers: room.users.map((p) => ({ name: p.name, index: p.id })),
+    }))
+  )
+
+  const message = JSON.stringify({ type: 'update_room', data: rooms, id: 0 })
+  broadcast(wss, message)
+}

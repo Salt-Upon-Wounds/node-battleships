@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws'
 import { Data } from '../types'
 import { state } from './db'
+import { getPlayerBySocket, sendRoomList } from './utils'
 
 export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer) {
   console.log('Received:', message)
@@ -49,6 +50,18 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
         })
       )
 
+      break
+    }
+
+    case 'create_room': {
+      const player = getPlayerBySocket(ws)
+      if (!player) return
+
+      const roomId = `${state.globalRoomId++}`
+      const room = { id: roomId, users: [player] }
+      state.rooms.set(roomId, room)
+
+      sendRoomList(wss)
       break
     }
 
