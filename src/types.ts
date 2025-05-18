@@ -16,17 +16,3 @@ export interface Data {
   data?: string
   id: number
 }
-
-export interface Ship {
-  position: Position
-  direction: boolean
-  length: number
-  type: ShipType
-}
-
-export interface Position {
-  x: number
-  y: number
-}
-
-export type ShipType = 'small' | 'medium' | 'large' | 'huge'

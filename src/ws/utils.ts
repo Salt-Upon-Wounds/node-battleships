@@ -13,6 +13,10 @@ export function getPlayerBySocket(ws: WebSocket) {
   return Array.from(state.users.values()).find((p) => p.ws === ws)
 }
 
+export function getPlayerById(id: string) {
+  return Array.from(state.users.values()).find((p) => p.id.toString() === id)
+}
+
 export function sendRoomList(wss: WebSocketServer) {
   const rooms = JSON.stringify(
     Array.from(state.rooms.values()).map((room) => ({
