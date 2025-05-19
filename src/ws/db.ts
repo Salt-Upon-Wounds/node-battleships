@@ -15,7 +15,13 @@ export interface StateRoom {
 }
 
 export interface Game {
-  [playerId: string]: Ship[]
+  ships: {
+    [playerId: string]: Ship[]
+  }
+  hits: {
+    [playerId: string]: Set<string>
+  }
+  currentPlayerId: string | number
 }
 
 export interface Ship {

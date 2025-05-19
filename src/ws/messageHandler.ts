@@ -1,7 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws'
 import { Data } from '../types'
 import { state } from './db'
-import { getPlayerById, getPlayerBySocket, sendRoomList } from './utils'
+import { attack, getPlayerById, getPlayerBySocket, sendRoomList } from './utils'
 
 export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer) {
   console.log('Received:', message)
@@ -56,7 +56,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
 
     case 'create_room': {
       const player = getPlayerBySocket(ws)
-      if (!player) return
+      if (!player) break
 
       const roomId = `${state.globalRoomId++}`
       const room = { id: roomId, users: [player] }
@@ -68,7 +68,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
 
     case 'add_user_to_room': {
       const player = getPlayerBySocket(ws)
-      if (!player) return
+      if (!player) break
 
       const { indexRoom } = JSON.parse(message.data!)
       const room = state.rooms.get(String(indexRoom))
@@ -97,22 +97,37 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
 
     case 'add_ships': {
       const { gameId, ships, indexPlayer } = JSON.parse(message.data!)
-      const game = state.games.get(gameId) ?? state.games.set(gameId, {}).get(gameId)!
-      game[indexPlayer] ??= ships
+      const game =
+        state.games.get(gameId) ??
+        state.games.set(gameId, { ships: {}, hits: {}, currentPlayerId: indexPlayer }).get(gameId)!
+      game.ships[indexPlayer] ??= ships
+      game.hits[indexPlayer] ??= new Set<string>()
       if (Object.entries(game).length === 2) {
-        for (const [id, sh] of Object.entries(game)) {
+        for (const [id, sh] of Object.entries(game.ships)) {
           getPlayerById(id)!.ws.send(
             JSON.stringify({
               type: 'start_game',
               data: JSON.stringify({
                 ships: sh,
-                currentPlayerIndex: id,
+                currentPlayerIndex: game.currentPlayerId,
               }),
               id: 0,
             })
           )
         }
       }
+      break
+    }
+
+    case 'attack': {
+      const { gameId, x, y, indexPlayer } = JSON.parse(message.data!)
+      attack(gameId, indexPlayer, x, y)
+      break
+    }
+
+    case 'randomAttack': {
+      const { gameId, indexPlayer } = JSON.parse(message.data!)
+      attack(gameId, indexPlayer)
       break
     }
 
