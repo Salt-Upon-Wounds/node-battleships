@@ -11,6 +11,7 @@ export type DataType =
   | 'randomAttack'
   | 'turn'
   | 'finish'
+  | 'single_play'
 export interface Data {
   type: DataType
   data?: string

@@ -1,7 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws'
 import { Data } from '../types'
 import { state } from './db'
-import { attack, getPlayerById, getPlayerBySocket, sendRoomList } from './utils'
+import { attack, getPlayerById, getPlayerBySocket, sendRoomList, sendWinnersList } from './utils'
 
 export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer) {
   console.log('Received:', message)
@@ -51,6 +51,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
       )
 
       sendRoomList(wss)
+      sendWinnersList(wss)
       break
     }
 
@@ -72,7 +73,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
 
       const { indexRoom } = JSON.parse(message.data!)
       const room = state.rooms.get(String(indexRoom))
-      if (!room || room.users.length !== 1) return
+      if (!room || room.users.length !== 1 || room.users.includes(player)) break
 
       room.users.push(player)
 
@@ -102,7 +103,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
         state.games.set(gameId, { ships: {}, hits: {}, currentPlayerId: indexPlayer }).get(gameId)!
       game.ships[indexPlayer] ??= ships
       game.hits[indexPlayer] ??= new Set<string>()
-      if (Object.entries(game).length === 2) {
+      if (Object.entries(game.ships).length === 2) {
         for (const [id, sh] of Object.entries(game.ships)) {
           getPlayerById(id)!.ws.send(
             JSON.stringify({
@@ -128,6 +129,11 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
     case 'randomAttack': {
       const { gameId, indexPlayer } = JSON.parse(message.data!)
       attack(gameId, indexPlayer)
+      break
+    }
+
+    case 'single_play': {
+
       break
     }
 

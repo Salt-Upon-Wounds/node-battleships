@@ -29,11 +29,23 @@ export function sendRoomList(wss: WebSocketServer) {
   broadcast(wss, message)
 }
 
+export function sendWinnersList(wss: WebSocketServer) {
+  const table = JSON.stringify(
+    Array.from(state.winners.entries()).map(([name, wins]) => ({
+      name,
+      wins,
+    }))
+  )
+
+  const message = JSON.stringify({ type: 'update_winners', data: table, id: 0 })
+  broadcast(wss, message)
+}
+
 export function getShipCells(ship: Ship): Position[] {
   const cells = []
   for (let i = 0; i < ship.length; i++) {
-    const dx = ship.direction ? i : 0
-    const dy = ship.direction ? 0 : i
+    const dy = ship.direction ? i : 0
+    const dx = ship.direction ? 0 : i
     cells.push({ x: ship.position.x + dx, y: ship.position.y + dy })
   }
   return cells
@@ -41,15 +53,24 @@ export function getShipCells(ship: Ship): Position[] {
 
 export function attack(gameId: string, indexPlayer: string, x?: number, y?: number) {
   const game = state.games.get(gameId)
-  if (!game || game.currentPlayerId !== indexPlayer) return
+  console.log(
+    'indexes',
+    game?.currentPlayerId?.toString(),
+    ' ',
+    indexPlayer,
+    '',
+    game!.currentPlayerId != indexPlayer
+  )
+  if (!game || game.currentPlayerId != indexPlayer) return
 
-  const opponentId = Object.keys(game).find((id) => id !== indexPlayer)
-  if (!opponentId) return
+  const opponentId = Object.keys(game.ships).find((id) => id != indexPlayer)!
+  console.log('indexes2', indexPlayer, ' ', opponentId, ' | ', Object.keys(game.ships))
 
   let shotKey: string
 
-  if (Number.isInteger(x) && Number.isInteger(y)) {
+  if (typeof x !== 'undefined' && typeof y !== 'undefined') {
     shotKey = `${x},${y}`
+    if (game.hits[opponentId].has(shotKey)) return
   } else {
     const freeCells = []
     for (let x = 0; x < 10; x++) {
@@ -61,9 +82,11 @@ export function attack(gameId: string, indexPlayer: string, x?: number, y?: numb
       }
     }
     const target = freeCells[Math.floor(Math.random() * freeCells.length)]
+    console.log('target', target)
     if (!target) return
     shotKey = `${target.x},${target.y}`
   }
+  console.log('shotKey ', shotKey)
 
   const wasHit = game.ships[opponentId].some((ship) => {
     const cells = getShipCells(ship)
@@ -82,6 +105,7 @@ export function attack(gameId: string, indexPlayer: string, x?: number, y?: numb
     status = killed ? 'killed' : 'shot'
     if (killed) {
       const around = getAroundCells(killed)
+      console.log('killed', around)
       for (const cell of around) {
         const key = `${cell.x},${cell.y}`
         if (!game.hits[opponentId].has(key)) {
@@ -91,11 +115,11 @@ export function attack(gameId: string, indexPlayer: string, x?: number, y?: numb
             getPlayerById(p)!.ws.send(
               JSON.stringify({
                 type: 'attack',
-                data: {
+                data: JSON.stringify({
                   position: { x: cell.x, y: cell.y },
                   currentPlayer: indexPlayer,
                   status: 'miss',
-                },
+                }),
                 id: 0,
               })
             )
@@ -134,23 +158,22 @@ export function attack(gameId: string, indexPlayer: string, x?: number, y?: numb
       )
     }
     state.games.delete(gameId)
+    const wins = state.winners.get(getPlayerById(indexPlayer)!.name) ?? 0
+    state.winners.set(getPlayerById(indexPlayer)!.name, wins + 1)
     return
   }
 
-  if (status === 'miss') {
-    game.currentPlayerId = opponentId
+  game.currentPlayerId = opponentId
 
-    for (const p of Object.keys(game.ships)) {
-      getPlayerById(p)!.ws.send(
-        JSON.stringify({
-          type: 'turn',
-          data: JSON.stringify({ currentPlayer: game.currentPlayerId }),
-          id: 0,
-        })
-      )
-    }
+  for (const p of Object.keys(game.ships)) {
+    getPlayerById(p)!.ws.send(
+      JSON.stringify({
+        type: 'turn',
+        data: JSON.stringify({ currentPlayer: game.currentPlayerId }),
+        id: 0,
+      })
+    )
   }
-  return
 }
 
 export function getAroundCells(ship: Ship): Position[] {
