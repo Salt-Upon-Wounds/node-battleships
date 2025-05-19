@@ -2,11 +2,21 @@ import { WebSocket } from 'ws'
 
 export const state = {
   rooms: new Map<string, StateRoom>(),
-  users: new Map<string, StateUser>(),
+  users: new Map<string, StateUser>([
+    [
+      'BOT',
+      {
+        name: 'BOT',
+        id: -1,
+        password: 'asdqwezxc#$%123+   ;asdqwexcv',
+      },
+    ],
+  ]),
   winners: new Map<string, number>(),
   games: new Map<string, Game>(),
   globalId: 0,
   globalRoomId: 0,
+  //botGamesToAttack: [] as string[],
 }
 
 export interface StateRoom {
@@ -42,6 +52,5 @@ export interface StateUser {
   id: string | number
   name: string
   password: string
-  ws: WebSocket
-  wins: number
+  ws?: WebSocket
 }

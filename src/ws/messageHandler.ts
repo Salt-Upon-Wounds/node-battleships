@@ -1,7 +1,14 @@
 import { WebSocket, WebSocketServer } from 'ws'
 import { Data } from '../types'
 import { state } from './db'
-import { attack, getPlayerById, getPlayerBySocket, sendRoomList, sendWinnersList } from './utils'
+import {
+  attack,
+  generateBotShips,
+  getPlayerById,
+  getPlayerBySocket,
+  sendRoomList,
+  sendWinnersList,
+} from './utils'
 
 export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer) {
   console.log('Received:', message)
@@ -30,7 +37,6 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
             password,
             ws,
             id: state.globalId++,
-            wins: 0,
           }
           state.users.set(name, user)
           state.winners.set(name, 0)
@@ -80,7 +86,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
       state.rooms.delete(indexRoom)
 
       for (const p of room.users.values()) {
-        p.ws.send(
+        p.ws?.send(
           JSON.stringify({
             type: 'create_game',
             data: JSON.stringify({
@@ -105,7 +111,7 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
       game.hits[indexPlayer] ??= new Set<string>()
       if (Object.entries(game.ships).length === 2) {
         for (const [id, sh] of Object.entries(game.ships)) {
-          getPlayerById(id)!.ws.send(
+          getPlayerById(id)!.ws?.send(
             JSON.stringify({
               type: 'start_game',
               data: JSON.stringify({
@@ -122,17 +128,40 @@ export function handleMessage(ws: WebSocket, message: Data, wss: WebSocketServer
 
     case 'attack': {
       const { gameId, x, y, indexPlayer } = JSON.parse(message.data!)
-      attack(gameId, indexPlayer, x, y)
+      attack(gameId, indexPlayer, wss, x, y)
       break
     }
 
     case 'randomAttack': {
       const { gameId, indexPlayer } = JSON.parse(message.data!)
-      attack(gameId, indexPlayer)
+      attack(gameId, indexPlayer, wss)
       break
     }
 
     case 'single_play': {
+      const player = getPlayerBySocket(ws)!
+      const botPlayer = state.users.get('BOT')!
+      const gameId = crypto.randomUUID()
+
+      const botShips = generateBotShips()
+      console.log('botShips:', botShips)
+
+      state.games.set(gameId, {
+        ships: { [botPlayer.id]: botShips },
+        hits: { [botPlayer.id]: new Set<string>() },
+        currentPlayerId: player.id,
+      })
+
+      ws.send(
+        JSON.stringify({
+          type: 'create_game',
+          data: JSON.stringify({
+            idGame: gameId,
+            idPlayer: player.id,
+          }),
+          id: 0,
+        })
+      )
 
       break
     }
