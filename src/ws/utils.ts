@@ -240,35 +240,58 @@ export function generateBotShips(): Ship[] {
     [1, 'small'],
     [1, 'small'],
   ]
+
   const field = Array.from({ length: 10 }, () => Array(10).fill(0))
   const ships: Ship[] = []
 
   for (const [length, type] of lengths) {
     let placed = false
-    while (!placed) {
-      const dir = Math.random() < 0.5
-      const x = Math.floor(Math.random() * (dir ? 10 - length : 10))
-      const y = Math.floor(Math.random() * (dir ? 10 : 10 - length))
 
+    while (!placed) {
+      const direction = Math.random() < 0.5
+      const maxX = direction ? 9 : 10 - length
+      const maxY = direction ? 10 - length : 9
+
+      const x = Math.floor(Math.random() * (maxX + 1))
+      const y = Math.floor(Math.random() * (maxY + 1))
+
+      const cells: Position[] = []
       let canPlace = true
+
       for (let i = 0; i < length; i++) {
-        const xi = dir ? x + i : x
-        const yi = dir ? y : y + i
+        const xi = x + (direction ? 0 : i)
+        const yi = y + (direction ? i : 0)
+
         if (field[yi][xi]) {
           canPlace = false
           break
         }
+
+        cells.push({ x: xi, y: yi })
       }
 
-      if (canPlace) {
-        for (let i = 0; i < length; i++) {
-          const xi = dir ? x + i : x
-          const yi = dir ? y : y + i
-          field[yi][xi] = 1
+      if (!canPlace) continue
+
+      for (const { x: cx, y: cy } of cells) {
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            const nx = cx + dx
+            const ny = cy + dy
+            if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10 && field[ny][nx]) {
+              canPlace = false
+            }
+          }
         }
-        ships.push({ position: { x, y }, direction: dir, length, type })
-        placed = true
       }
+
+      if (!canPlace) continue
+
+      for (const { x: xi, y: yi } of cells) {
+        field[yi][xi] = 1
+      }
+
+      ships.push({ position: { x, y }, direction, type, length })
+      placed = true
     }
   }
 
